@@ -1,0 +1,68 @@
+Select first_name + ' ' + last_name as full_name
+, email  
+, street
+, state
+From sales.customers
+
+select customer_id 
+, o.order_id 
+, sum (quantity) as totalquantity 
+, sum ((1-discount) * list_price) as totalprice 
+from sales.orders o
+left join sales.order_items oi on o.order_id = oi.order_id 
+group by o.order_id , customer_id
+
+select first_name + ' ' + last_name as full_name
+, email  
+, street
+, state 
+, sum (quantity) as totalquantity 
+, sum ((1-discount) * list_price) as Amount 
+, max (order_date) as latest_date_of_purchase
+, DATEDIFF (DAY, max (order_date) , '2019-01-01') as Recency
+, count (distinct o.order_id) as Frequency
+from sales.orders o
+left join sales.order_items oi on o.order_id = oi.order_id 
+left join sales.customers c on o.customer_id = c.customer_id
+where c.customer_id = 1 
+group by first_name + ' ' + last_name , email , street , state 
+
+SELECT *
+,case when Recency >= 365 * 3 then 'inactive' 
+when Recency >= 365 * 2 then 'cold'
+when Recency >= 365 then 'warm'
+else 'active'
+end as customerstatus
+,case when Recency >= 365 * 3 then 'inactive' 
+when Recency >= 365 * 2 and Amount >= 4000 then 'cold with high value'
+when Recency >= 365 * 2 and Amount < 4000 then 'cold with low value'
+when Recency >= 365 and Amount >= 4000 then 'warm with high value'
+when Recency >= 365 and Amount < 4000 then 'warm with low value'
+when Recency < 365 and Amount >= 4000 then 'active with high value'
+when Recency < 365 and Amount < 4000 then 'active with low value'
+end as customerstatus2 
+FROM ( 
+select first_name + ' ' + last_name as full_name
+, email  
+, street
+, state 
+, sum (quantity) as totalquantity 
+, sum ((1-discount) * list_price) as Amount 
+, max (order_date) as latest_date_of_purchase
+, DATEDIFF (DAY, max (order_date) , '2019-01-01') as Recency
+, count (distinct o.order_id) as Frequency
+from sales.orders o
+left join sales.order_items oi on o.order_id = oi.order_id 
+left join sales.customers c on o.customer_id = c.customer_id
+group by first_name + ' ' + last_name , email , street , state
+) as x
+
+
+
+
+select min (amount) from (
+	select NTILE (2) over (order by  (1-discount) * list_price) as partitions
+	, (1-discount) * list_price as amount 
+	from Sales.order_items
+) as x  
+Where partitions = 2
